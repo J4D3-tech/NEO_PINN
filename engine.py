@@ -96,7 +96,7 @@ def prepare_data():
         'test': (X_test_t, y_test, idx_test)
     }
 
-def train_model(data, epochs=100, patience=40):
+def train_model(data, epochs=5000, patience=40):
     """Trenuje model PINN i zapisuje najlepsze wagi."""
     device = data['device']
     X_train_t, y_train_t, a_train_real, e_train_real = data['train']

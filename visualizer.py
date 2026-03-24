@@ -77,7 +77,6 @@ def visualize_animated_neos(neo_list, epoch_start=2459000.5, days_to_simulate=36
     times = np.linspace(epoch_start, epoch_start + days_to_simulate, frames_count)
     colors_cycle = ['#FF8C00', '#9370DB', '#32CD32', '#FF1493', '#4169E1', '#8A2BE2', '#FF69B4', '#008080', '#20B2AA', '#4B0082']
     
-    # --- ETAP 1: WARSTWY STATYCZNE ---
     fig.add_trace(go.Scatter3d(x=[0], y=[0], z=[0], mode='markers', 
                                marker=dict(size=14, color='#FFD700', symbol='diamond', line=dict(color='orange', width=2)), 
                                name='Sun', showlegend=True))
@@ -101,11 +100,9 @@ def visualize_animated_neos(neo_list, epoch_start=2459000.5, days_to_simulate=36
 
     num_static_traces = 2 + len(neo_list)
 
-    # --- ETAP 2: WARSTWY DYNAMICZNE ---
     dynamic_traces_indices = []
     current_idx = num_static_traces
 
-    # Ziemia (Punkt startowy)
     ex0, ey0, ez0 = get_position_at_time(1.0, 0.0167, 0.0, 0.0, 288.1, 0.0, 0.9856, epoch_start, times[0])
     fig.add_trace(go.Scatter3d(x=[ex0], y=[ey0], z=[ez0], mode='markers', 
                                marker=dict(size=8, color='blue', line=dict(color='white', width=2)), 
@@ -113,21 +110,18 @@ def visualize_animated_neos(neo_list, epoch_start=2459000.5, days_to_simulate=36
     dynamic_traces_indices.append(current_idx)
     current_idx += 1
 
-    # Wskaźnik Zbliżenia (Pusty na start)
     fig.add_trace(go.Scatter3d(x=[ex0, ex0], y=[ey0, ey0], z=[ez0, ez0], mode='lines', 
                                line=dict(color='red', width=3, dash='dot'), 
                                name='Line of Approach', showlegend=False))
     dynamic_traces_indices.append(current_idx)
     current_idx += 1
 
-    # Punkty NEO (Startowe z obsługą tekstu)
     for i, neo in enumerate(neo_list):
         a, e, inc, om, w = neo['params']
         ma, n = neo['time_params']['ma'], neo['time_params']['n']
         nx0, ny0, nz0 = get_position_at_time(a, e, inc, om, w, ma, n, epoch_start, times[0])
         name = neo['name']
         
-        # Ustawiamy mode na 'markers+text', żeby w klatkach animacji móc dynamicznie dopisywać ostrzeżenia
         fig.add_trace(go.Scatter3d(x=[nx0], y=[ny0], z=[nz0], mode='markers+text', 
                                    marker=dict(size=6, symbol='circle', color='gray'), 
                                    text=[""], textposition="top right",
@@ -136,14 +130,12 @@ def visualize_animated_neos(neo_list, epoch_start=2459000.5, days_to_simulate=36
         current_idx += 1
 
 
-    # --- ETAP 3: GENEROWANIE KLATEK ---
     frames = []
     AU_TO_LD = 389.17
 
     for step, t in enumerate(times):
         frame_data = [] 
         
-        # 1. Pozycja Ziemi
         ex, ey, ez = get_position_at_time(1.0, 0.0167, 0.0, 0.0, 288.1, 0.0, 0.9856, epoch_start, t)
         frame_data.append(go.Scatter3d(x=[ex], y=[ey], z=[ez])) 
 
@@ -151,7 +143,6 @@ def visualize_animated_neos(neo_list, epoch_start=2459000.5, days_to_simulate=36
         closest_neo_pos = (ex, ey, ez)
         neo_points_data = [] 
         
-        # 2. Pozycje NEO (Z logiką CLOSE APPROACH)
         for neo in neo_list:
             a, e, inc, om, w = neo['params']
             ma, n = neo['time_params']['ma'], neo['time_params']['n']
@@ -159,10 +150,9 @@ def visualize_animated_neos(neo_list, epoch_start=2459000.5, days_to_simulate=36
             
             dist_au = np.sqrt((nx-ex)**2 + (ny-ey)**2 + (nz-ez)**2)
             dist_ld = dist_au * AU_TO_LD
-            
-            # --- LOGIKA ZMIANY KOLORÓW I OSTRZEŻEŃ ---
-            if dist_ld <= 15.0: # ALARM - Czerwony (< 15 LD)
-                marker_color = '#FF0000' # Mocny czerwony
+  
+            if dist_ld <= 15.0:
+                marker_color = '#FF0000' 
                 marker_size = 12
                 alert_text = f"Warning {neo['name']} ({dist_ld:.1f} LD)"
                 
@@ -170,23 +160,23 @@ def visualize_animated_neos(neo_list, epoch_start=2459000.5, days_to_simulate=36
                     closest_neo_dist = dist_ld
                     closest_neo_pos = (nx, ny, nz)
                     
-            elif dist_ld <= 50.0: # OSTRZEŻENIE - Pomarańczowy (< 50 LD)
-                marker_color = '#FF8C00' # Ciemny pomarańcz
+            elif dist_ld <= 50.0: 
+                marker_color = '#FF8C00'
                 marker_size = 9
-                alert_text = "" # Brak tekstu, tylko większa kropka
+                alert_text = "" 
                 
                 if dist_ld < closest_neo_dist:
                     closest_neo_dist = dist_ld
                     closest_neo_pos = (nx, ny, nz)
                     
-            else: # BEZPIECZNIE - Zielony
-                marker_color = 'rgba(0, 150, 0, 0.7)' # Przytłumiony zielony
+            else: 
+                marker_color = 'rgba(0, 150, 0, 0.7)' 
                 marker_size = 5
                 alert_text = ""
 
             neo_points_data.append(go.Scatter3d(
                 x=[nx], y=[ny], z=[nz], 
-                mode='markers+text', # Wymagane do wyświetlania alertów
+                mode='markers+text', 
                 text=[alert_text],
                 textfont=dict(color='red', size=14, family="Arial Black"),
                 textposition="middle right",
@@ -194,7 +184,6 @@ def visualize_animated_neos(neo_list, epoch_start=2459000.5, days_to_simulate=36
                 hovertemplate=f"<b>{neo['name']}</b><br>Distance: {dist_ld:.1f} LD<br>Data: Day {int(t-epoch_start)}<extra></extra>"
             ))
 
-        # 3. Wskaźnik zbliżenia (czerwona linia) - pojawia się, gdy jakikolwiek obiekt wejdzie w strefę < 50 LD
         if closest_neo_dist <= 50.0:
             frame_data.append(go.Scatter3d(x=[ex, closest_neo_pos[0]], y=[ey, closest_neo_pos[1]], z=[ez, closest_neo_pos[2]]))
         else:
@@ -205,7 +194,6 @@ def visualize_animated_neos(neo_list, epoch_start=2459000.5, days_to_simulate=36
 
     fig.frames = frames
 
-    # --- ETAP 4: UKŁAD ---
     fig.update_layout(
         title='PINN NEO Orbit Analysis: Close approach warning',
         paper_bgcolor='white', 

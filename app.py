@@ -25,7 +25,7 @@ def main_menu():
         choice = input("Select an option (0-4): ").strip()
         
         if choice == '1':
-            epochs_input = input("Enter number of epochs (default 100): ").strip()
+            epochs_input = input("Enter number of epochs (default 5000): ").strip()
             epochs = int(epochs_input) if epochs_input.isdigit() else 100
             engine.train_model(data, epochs=epochs)
             

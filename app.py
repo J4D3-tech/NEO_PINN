@@ -8,6 +8,9 @@ def print_header():
 
 def main_menu():
     print("\nLoading dataset and preparing environment")
+    # Słownik 'data' jest centralnym magazynem: zawiera nie tylko tensory do treningu,
+    # ale też dopasowane skalery (StandardScaler/RobustScaler), które są NIEZBĘDNE 
+    # do poprawnego odkodowania wyników podczas predykcji (choice == '3').
     data = engine.prepare_data()
     print("Data loaded successfully\n")
     
@@ -25,7 +28,7 @@ def main_menu():
         choice = input("Select an option (0-4): ").strip()
         
         if choice == '1':
-            epochs_input = input("Enter number of epochs (default 100): ").strip()
+            epochs_input = input("Enter number of epochs (default 5000): ").strip()
             epochs = int(epochs_input) if epochs_input.isdigit() else 100
             engine.train_model(data, epochs=epochs)
             

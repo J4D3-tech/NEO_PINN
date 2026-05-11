@@ -24,6 +24,7 @@ def set_seed(seed=42):
 
 def prepare_data():
     """Ładuje dane z CSV (lub mock) i przygotowuje tensory."""
+
     set_seed(42)
     device = torch.device("cuda" if torch.cuda.is_available() else ("mps" if torch.backends.mps.is_available() else "cpu"))
     
@@ -49,11 +50,14 @@ def prepare_data():
 
     df['display_name'] = df['full_name'].fillna("Unknown object").str.strip() if 'full_name' in df.columns else "NEO"
     df['i_rad'], df['om_rad'], df['w_rad'] = np.radians(df['i']), np.radians(df['om']), np.radians(df['w'])
+    # Transformacja kątów na sin/cos: zapobiega problemowi "skoku" (np. 359st i 1st są blisko, ale numerycznie dzieli je duża różnica). Sin/Cos zapewnia ciągłość matematyczną.
     df['i_sin'], df['i_cos'] = np.sin(df['i_rad']), np.cos(df['i_rad'])
     df['om_sin'], df['om_cos'] = np.sin(df['om_rad']), np.cos(df['om_rad'])
     df['w_sin'], df['w_cos'] = np.sin(df['w_rad']), np.cos(df['w_rad'])
 
     df = df[(df['H'] > -1) & (df['a'] > 0)].copy()
+    # Logarytmowanie H (jasność) i a (półoś wielka): H i a często mają rozkład długoogonowy.
+    # log1p (log(1+x)) stabilizuje proces uczenia i zmniejsza wpływ ekstremalnych wartości.
     df['H_log'], df['a_log'] = np.log1p(df['H']), np.log1p(df['a'])
 
     features_cols = ['H_log', 'e', 'a_log', 'i_sin', 'i_cos', 'om_sin', 'om_cos', 'w_sin', 'w_cos']
@@ -67,6 +71,8 @@ def prepare_data():
     indices = df.index.values 
 
     scaler_X = StandardScaler()
+    # Użycie RobustScaler dla celu (y): Odporny na outliery (bardzo odległe obiekty), 
+    # co pozwala modelowi skupić się na "normalnym" zakresie odległości.
     scaler_y = RobustScaler()
     X_scaled = scaler_X.fit_transform(X)
     y_scaled = scaler_y.fit_transform(y)
@@ -96,7 +102,7 @@ def prepare_data():
         'test': (X_test_t, y_test, idx_test)
     }
 
-def train_model(data, epochs=100, patience=40):
+def train_model(data, epochs=5000, patience=30):
     """Trenuje model PINN i zapisuje najlepsze wagi."""
     device = data['device']
     X_train_t, y_train_t, a_train_real, e_train_real = data['train']
@@ -139,7 +145,7 @@ def train_model(data, epochs=100, patience=40):
             print(f"Early stopping at epoch: {epoch+1}!")
             break 
             
-        if (epoch + 1) % 20 == 0:
+        if (epoch + 1) % 50 == 0:
             with torch.no_grad():
                 y_pred_val_real = scaler_y.inverse_transform(y_pred_val[:, [0]].cpu().numpy())
                 y_true_val_real = scaler_y.inverse_transform(y_val_t.cpu().numpy())

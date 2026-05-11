@@ -4,6 +4,8 @@ import plotly.graph_objects as go
 import plotly.offline as pyo
 
 def solve_kepler(M_rad, e, tol=1e-6):
+    # Rozwiązuje równanie Keplera (M = E - e*sin(E)) metodą Newtona-Raphsona.
+    # Pozwala wyznaczyć pozycję obiektu na elipsie w danym czasie.
     E = M_rad
     for _ in range(100):
         diff = E - e * np.sin(E) - M_rad
@@ -13,6 +15,8 @@ def solve_kepler(M_rad, e, tol=1e-6):
     return E
 
 def get_position_at_time(a, e, i_deg, om_deg, w_deg, ma_deg, n_deg, epoch, t):
+    # Transformacja współrzędnych z płaszczyzny orbity do 3D (układ ekliptyczny) za pomocą macierzy rotacji (kąty: nachylenie, węzeł wstępujący, argument peryhelium).
+    
     if e >= 1.0 or n_deg == 0:
         return np.array([np.nan, np.nan, np.nan])
         
@@ -30,7 +34,9 @@ def get_position_at_time(a, e, i_deg, om_deg, w_deg, ma_deg, n_deg, epoch, t):
     R_w = np.array([[np.cos(w), -np.sin(w), 0], [np.sin(w), np.cos(w), 0], [0, 0, 1]])
     R_i = np.array([[1, 0, 0], [0, np.cos(i), -np.sin(i)], [0, np.sin(i), np.cos(i)]])
     R_om = np.array([[np.cos(om), -np.sin(om), 0], [np.sin(om), np.cos(om), 0], [0, 0, 1]])
-    
+    # R_w: rotacja o argument peryhelium
+    # R_i: rotacja o nachylenie (inklinację)
+    # R_om: rotacja o długość węzła wstępującego
     R = R_om @ R_i @ R_w
     return R @ np.array([x_orb, y_orb, z_orb])
 
